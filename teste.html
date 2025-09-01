@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>Protótipo – Mapa (OSM) + 3D (Babylon) com Esferas Fixas e Marcadores</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    html, body { height: 100%; margin: 0; background:#0b0d10; color:#eaeaea; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #root { height: 100%; }
+    .screen { position: fixed; inset: 0; display: none; }
+    .screen.active { display: block; }
+    #map { width: 100%; height: 100%; }
+    #renderCanvas { width: 100%; height: 100%; display:block; touch-action: none; }
+
+    .ui { position: fixed; inset: 0; pointer-events: none; }
+    .panel {
+      pointer-events: auto; position: absolute; left: 12px; top: 12px; padding: 10px 12px;
+      background: rgba(10,10,10,.72); border:1px solid rgba(255,255,255,.12); border-radius:12px; backdrop-filter: blur(6px);
+      font-size: 12px; max-width: 90vw;
+    }
+    .btn {
+      appearance: none; cursor:pointer; border-radius:10px; border:1px solid rgba(255,255,255,.15);
+      background:#17191c; color:#f2f2f2; padding:8px 10px; font-size:13px;
+    }
+    .btn:hover { background:#1f2327; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); margin-right:6px; }
+    .note { opacity:.85; margin-top:6px; line-height:1.4; }
+    .list { margin-top:6px; line-height:1.6; }
+    .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <!-- SCREEN: MAPA -->
+    <div id="screen-map" class="screen active">
+      <div id="map"></div>
+      <div class="ui">
+        <div class="panel">
+          <div><b>Mapa (OpenStreetMap)</b></div>
+          <div class="note">Toque no marcador da SUA posição para abrir a cena 3D.</div>
+          <div class="note">Marcadores coloridos indicam as esferas fixas.</div>
+          <div id="statusMap" class="note"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN: 3D -->
+    <div id="screen-3d" class="screen">
+      <canvas id="renderCanvas"></canvas>
+      <div class="ui">
+        <div class="panel">
+          <div style="margin-bottom:6px;"><b>Cena 3D</b></div>
+          <button class="btn" id="backToMap">Voltar ao mapa</button>
+          <div class="note" id="status3d"></div>
+          <div class="list" id="distList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <!-- BabylonJS -->
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+
+  <script>
+    /**********************
+     * Helpers geoespaciais
+     **********************/
+    const R_EARTH = 6378137; // raio em metros (WGS84)
+    const deg2rad = d => d * Math.PI / 180;
+
+    // Conversão lat/lon -> offsets locais (em metros) relativos a um centro (lat0, lon0)
+    function latLonToLocalXY(lat0, lon0, lat, lon) {
+      const dLat = deg2rad(lat - lat0);
+      const dLon = deg2rad(lon - lon0);
+      const x = dLon * Math.cos(deg2rad((lat + lat0) / 2)) * R_EARTH; // leste(+)
+      const y = dLat * R_EARTH;                                      // norte(+)
+      return { x, y };
+    }
+
+    /**********************
+     * Esferas fixas (geolocalizações fornecidas)
+     **********************/
+    const SPHERES_DEF = [
+      { key: "green",  name: "Verde",    color: {r:0.20,g:0.85,b:0.35}, hex:"#34d27a", lat: -22.008381, lon: -47.891023 },
+      { key: "blue",   name: "Azul",     color: {r:0.20,g:0.55,b:0.95}, hex:"#3a8ef7", lat: -23.555080484391453, lon: -46.729948994574485 },
+      { key: "red",    name: "Vermelha", color: {r:0.95,g:0.20,b:0.20}, hex:"#f25353", lat: -23.554938761550353, lon: -46.72928502121782 },
+      { key: "yellow", name: "Amarela",  color: {r:0.95,g:0.85,b:0.20}, hex:"#f2d453", lat: -23.55530066064501, lon: -46.729498983526106 },
+    ];
+
+    /**********************
+     * Estado global simples
+     **********************/
+    let curPos = null;     // {lat, lon}
+    let map = null;
+    let userMarker = null;
+    let sphereLayer = null;
+
+    // Babylon state
+    let bjs = {
+      engine: null,
+      scene: null,
+      camera: null,
+      sphereMeshes: [], // [{def, mesh}]
+    };
+
+    /**********************
+     * UI: alternar telas
+     **********************/
+    function showMapScreen() {
+      document.getElementById('screen-map').classList.add('active');
+      document.getElementById('screen-3d').classList.remove('active');
+    }
+    function show3DScreen() {
+      document.getElementById('screen-map').classList.remove('active');
+      document.getElementById('screen-3d').classList.add('active');
+    }
+
+    /**********************
+     * Inicializa Mapa OSM + Marcadores das Esferas
+     **********************/
+    function initMap() {
+      const statusEl = document.getElementById('statusMap');
+
+      // Centro inicial: Poli-USP (fallback)
+      const startLat = -23.5597, startLon = -46.7310;
+
+      map = L.map('map', { zoomControl: true, attributionControl: true }).setView([startLat, startLon], 17);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+
+      userMarker = L.marker([startLat, startLon], { draggable: false }).addTo(map);
+      userMarker.bindTooltip("Sua posição (toque para abrir 3D)", {permanent: false});
+      userMarker.on('click', open3DFromMarker);
+      userMarker.on('touchstart', open3DFromMarker);
+
+      // Layer com os marcadores fixos das esferas
+      sphereLayer = L.layerGroup().addTo(map);
+      SPHERES_DEF.forEach(def => {
+        const m = L.circleMarker([def.lat, def.lon], {
+          radius: 7, weight: 2, color: def.hex, fillColor: def.hex, fillOpacity: 0.9
+        }).addTo(sphereLayer);
+        m.bindTooltip(`${def.name} (${def.lat.toFixed(6)}, ${def.lon.toFixed(6)})`, {permanent: false});
+      });
+
+      // Foi necessário essas opções para rodar no celular do Lucas
+      const geoOptions = {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 10000,
+      };
+
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+          updatePosition,
+          error,
+          geoOptions,
+        );
+      } else {
+        console.log("Geolocation not supported");
+      }
+
+      // Atualização de posição
+      function updatePosition(pos) {
+        const { latitude, longitude, accuracy } = pos.coords;
+        curPos = { lat: latitude, lon: longitude };
+
+        userMarker.setLatLng([latitude, longitude]);
+        if (!map._movedOnce) { map.setView([latitude, longitude], 18); map._movedOnce = true; }
+
+        const acc = accuracy ? `±${Math.round(accuracy)} m` : "—";
+        statusEl.innerHTML = `
+          <span class="badge">Lat: ${latitude.toFixed(6)}</span>
+          <span class="badge">Lon: ${longitude.toFixed(6)}</span>
+          <span class="badge">Precisão: ${acc}</span>
+          <div class="note">Atualizado em ${new Date().toLocaleTimeString()}</div>`;
+          onGeoUpdate();
+      }
+    }
+
+    function error(error) {
+      console.log(`ERROR(${error.code}): ${error.message}`);
+    }
+
+    function open3DFromMarker() {
+      if (!curPos) return;
+      show3DScreen();
+      initBabylonScene(); // cria cena e as esferas a partir do array
+    }
+
+    /**********************
+     * Cena 3D (Babylon)
+     **********************/
+    function disposeBabylon() {
+      try { bjs.engine?.dispose(); } catch {}
+      bjs.engine = null;
+      bjs.scene = null;
+      bjs.camera = null;
+      bjs.sphereMeshes = [];
+    }
+
+    function initBabylonScene() {
+      disposeBabylon();
+
+      const canvas = document.getElementById('renderCanvas');
+      const status3d = document.getElementById('status3d');
+      const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+      const scene = new BABYLON.Scene(engine);
+
+      // Céu azul simples
+      scene.clearColor = new BABYLON.Color4(0.65, 0.78, 0.95, 1.0);
+
+      // Câmera 1ª pessoa estática (olhar livre)
+      const camera = new BABYLON.ArcRotateCamera("cam",0, 0.05, 0, new BABYLON.Vector3(0, 1.7, 0), scene);
+      camera.minZ = 0.05;
+      camera.speed = 0; // sem deslocamento
+      camera.attachControl(canvas, true);
+
+      // Ativa touch-look personalizado (arrasta para girar)
+      //setupTouchLook(camera, canvas);
+
+      // Luz ambiente
+      new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0.2, 1, -0.2), scene);
+
+      // Chão cinza
+      const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 120, height: 120, subdivisions: 2 }, scene);
+      const gmat = new BABYLON.StandardMaterial("gmat", scene);
+      gmat.diffuseColor = new BABYLON.Color3(0.75, 0.75, 0.78);
+      gmat.specularColor = new BABYLON.Color3(0,0,0);
+      ground.material = gmat;
+
+      // Marca do jogador na origem
+      const you = BABYLON.MeshBuilder.CreateCylinder("you", { diameter: 0.35, height: 0.1 }, scene);
+      you.position = new BABYLON.Vector3(0, 0.05, 0);
+      const youMat = new BABYLON.StandardMaterial("youMat", scene);
+      youMat.emissiveColor = new BABYLON.Color3(0.1, 0.2, 0.9);
+      you.material = youMat;
+
+      // Criar esferas a partir do array
+      const sphereHeight = 0.7;
+      const sphereDiameter = 0.7;
+
+      bjs.sphereMeshes = SPHERES_DEF.map(def => {
+        const mesh = BABYLON.MeshBuilder.CreateSphere(def.key, { diameter: sphereDiameter, segments: 12 }, scene);
+        const mat  = new BABYLON.StandardMaterial(def.key + "Mat", scene);
+        mat.diffuseColor  = new BABYLON.Color3(def.color.r, def.color.g, def.color.b);
+        mat.emissiveColor = new BABYLON.Color3(def.color.r, def.color.g, def.color.b).scale(0.25);
+        mesh.material = mat;
+        mesh.position = new BABYLON.Vector3(0, sphereHeight, 0); // atualizado no onGeoUpdate()
+        return { def, mesh };
+      });
+
+      // Status
+      status3d.textContent = `Sua posição é a origem (0,0). As esferas são ancoradas a coordenadas fixas.`;
+
+      // Render loop
+      engine.runRenderLoop(() => scene.render());
+      window.addEventListener('resize', () => engine.resize());
+
+      bjs.engine = engine;
+      bjs.scene = scene;
+      bjs.camera = camera;
+
+      // Atualiza posições agora (caso já tenhamos curPos)
+      onGeoUpdate();
+    }
+
+    // Controle de olhar por arraste (robusto em mobile)
+   /* function setupTouchLook(camera, canvas) {
+      let dragging = false, lastX = 0, lastY = 0;
+      const yawSens = 0.0032;   // sensibilidade horizontal
+      const pitchSens = 0.0030; // sensibilidade vertical
+      const pitchLimit = Math.PI/2 - 0.05;
+
+      function onDown(e){
+        dragging = true;
+        lastX = e.clientX; lastY = e.clientY;
+        try { canvas.setPointerCapture(e.pointerId); } catch {}
+      }
+      function onMove(e){
+        if (!dragging) return;
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        lastX = e.clientX; lastY = e.clientY;
+        camera.rotation.y -= dx * yawSens;     // yaw
+        camera.rotation.x -= dy * pitchSens;   // pitch
+        if (camera.rotation.x >  pitchLimit) camera.rotation.x =  pitchLimit;
+        if (camera.rotation.x < -pitchLimit) camera.rotation.x = -pitchLimit;
+      }
+      function onUp(e){
+        dragging = false;
+        try { canvas.releasePointerCapture(e.pointerId); } catch {}
+      }
+      canvas.addEventListener('pointerdown', onDown, { passive: true });
+      canvas.addEventListener('pointermove', onMove, { passive: true });
+      canvas.addEventListener('pointerup', onUp, { passive: true });
+      canvas.addEventListener('pointercancel', onUp, { passive: true });
+    }*/
+
+    // Atualiza esferas e UI quando a geolocalização muda (mapa OU cena 3D)
+    function onGeoUpdate() {
+      // Atualiza cena 3D se estiver ativa
+      if (bjs.scene && curPos) {
+        const distances = [];
+        for (const it of bjs.sphereMeshes) {
+          const { def, mesh } = it;
+          const rel = latLonToLocalXY(curPos.lat, curPos.lon, def.lat, def.lon);
+          // Conversão: x=leste -> X; y=norte -> Z
+          mesh.position.x = rel.x;
+          mesh.position.z = rel.y;
+
+          const dist = Math.hypot(rel.x, rel.y);
+          distances.push({ name: def.name, key: def.key, dist });
+        }
+        // Atualiza UI de distâncias
+        distances.sort((a,b)=>a.dist-b.dist);
+        const distList = document.getElementById('distList');
+        distList.innerHTML = distances.map(d => {
+          const color = ({
+            green:"#34d27a",
+            blue:"#3a8ef7",
+            red:"#f25353",
+            yellow:"#f2d453"
+          })[d.key] || "#ddd";
+          return `<div><span class="dot" style="background:${color}"></span>${d.name}: <b>${d.dist.toFixed(1)} m</b></div>`;
+        }).join("");
+
+        // Status 3D com lat/lon atuais
+        const status3d = document.getElementById('status3d');
+        status3d.innerHTML = `
+          <span class="badge">Lat: ${curPos.lat.toFixed(6)}</span>
+          <span class="badge">Lon: ${curPos.lon.toFixed(6)}</span>
+          <span class="badge">Atualizado: ${new Date().toLocaleTimeString()}</span>`;
+      }
+    }
+
+    /**********************
+     * Navegação entre telas
+     **********************/
+    document.getElementById('backToMap').addEventListener('click', () => {
+      showMapScreen();
+      disposeBabylon();
+    });
+
+    /**********************
+     * Bootstrap
+     **********************/
+    window.addEventListener('load', () => {
+      initMap();
+    });
+
+    // Limpeza ao descarregar
+    window.addEventListener('beforeunload', () => {
+      disposeBabylon();
+    });
+  </script>
+</body>
+</html>
