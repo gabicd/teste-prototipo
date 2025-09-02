@@ -223,6 +223,15 @@
       const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
       const scene = new BABYLON.Scene(engine);
 
+      const faceColors = [];
+      faceColors[0] = new BABYLON.Color4(1, 0, 0, 1); // Red (Back)
+      faceColors[1] = new BABYLON.Color4(0, 1, 0, 1); // Green (Front)
+      faceColors[2] = new BABYLON.Color4(0, 0, 1, 1); // Blue (Top)
+      faceColors[3] = new BABYLON.Color4(1, 1, 0, 1); // Yellow (Bottom)
+      faceColors[4] = new BABYLON.Color4(1, 0, 1, 1); // Magenta (Right)
+      faceColors[5] = new BABYLON.Color4(0, 1, 1, 1); // Cyan (Left)
+
+
       // Céu azul simples
       scene.clearColor = new BABYLON.Color4(0.65, 0.78, 0.95, 1.0);
 
@@ -235,6 +244,8 @@
 
       camera.inertia = 0.75
       camera.inputs.attached.pointers.useNaturalPinchZoom = true;
+
+      //adicionar radius limits para o zoom
 
       // Ativa touch-look personalizado (arrasta para girar)
       //setupTouchLook(camera, canvas);
@@ -257,16 +268,16 @@
       you.material = youMat;
 
       // Criar esferas a partir do array
-      const sphereHeight = 0.7;
-      const sphereDiameter = 0.7;
+      //const sphereHeight = 0.7;
+      //const sphereDiameter = 0.7;
 
       bjs.sphereMeshes = SPHERES_DEF.map(def => {
-        const mesh = BABYLON.MeshBuilder.CreateSphere(def.key, { diameter: sphereDiameter, segments: 12 }, scene);
+        const mesh = BABYLON.MeshBuilder.CreateBox(def.key, { size:0.7, faceColors: faceColors }, scene);
         const mat  = new BABYLON.StandardMaterial(def.key + "Mat", scene);
-        mat.diffuseColor  = new BABYLON.Color3(def.color.r, def.color.g, def.color.b);
-        mat.emissiveColor = new BABYLON.Color3(def.color.r, def.color.g, def.color.b).scale(0.25);
+        //mat.diffuseColor  = new BABYLON.Color3(def.color.r, def.color.g, def.color.b);
+        //mat.emissiveColor = new BABYLON.Color3(def.color.r, def.color.g, def.color.b).scale(0.25);
         mesh.material = mat;
-        mesh.position = new BABYLON.Vector3(0, sphereHeight, 0); // atualizado no onGeoUpdate()
+        mesh.position = new BABYLON.Vector3(0, 0.7, 0); // atualizado no onGeoUpdate()
         return { def, mesh };
       });
 
