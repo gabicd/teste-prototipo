@@ -224,12 +224,12 @@
       const scene = new BABYLON.Scene(engine);
 
       const faceColors = [];
-      faceColors[0] = blue; // Red (Back)
-      faceColors[1] = green; // Green (Front)
-      faceColors[2] = red; // Blue (Top)
-      faceColors[3] = red; // Yellow (Bottom)
-      faceColors[4] = red; // Magenta (Right)
-      faceColors[5] = red; // Cyan (Left)
+      faceColors[0] = new BABYLON.Color4(0, 0, 1, 1); // Red (Back)
+      faceColors[1] = new BABYLON.Color4(0, 1, 0, 1); // Green (Front)
+      faceColors[2] = new BABYLON.Color4(1, 0, 0, 1); // Blue (Top)
+      faceColors[3] = new BABYLON.Color4(1, 0, 0, 1); // Yellow (Bottom)
+      faceColors[4] = new BABYLON.Color4(1, 0, 0, 1); // Magenta (Right)
+      faceColors[5] = new BABYLON.Color4(1, 0, 0, 1); // Cyan (Left)
 
 
       // Céu azul simples
