@@ -278,6 +278,7 @@
         //mat.emissiveColor = new BABYLON.Color3(def.color.r, def.color.g, def.color.b).scale(0.25);
         mesh.material = mat;
         mesh.position = new BABYLON.Vector3(0, 0.7, 0); // atualizado no onGeoUpdate()
+        mesh.lookAt(you.position)
         return { def, mesh };
       });
 
