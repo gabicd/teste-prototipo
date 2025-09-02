@@ -340,6 +340,7 @@
           // Conversão: x=leste -> X; y=norte -> Z
           mesh.position.x = rel.x;
           mesh.position.z = rel.y;
+          mesh.lookAt(you.position);
 
           const dist = Math.hypot(rel.x, rel.y);
           distances.push({ name: def.name, key: def.key, dist });
