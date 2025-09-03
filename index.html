@@ -95,7 +95,7 @@
      * Esferas fixas (geolocalizações fornecidas)
      **********************/
     const SPHERES_DEF = [
-      { key: "green",  name: "Verde",    color: {r:0.20,g:0.85,b:0.35}, hex:"#34d27a", lat: -22.008381, lon: -47.891023 },
+      { key: "green",  name: "Verde",    color: {r:0.20,g:0.85,b:0.35}, hex:"#34d27a", lat: -23.576911, lon: -46.640387 },
       { key: "blue",   name: "Azul",     color: {r:0.20,g:0.55,b:0.95}, hex:"#3a8ef7", lat: -23.555080484391453, lon: -46.729948994574485 },
       { key: "red",    name: "Vermelha", color: {r:0.95,g:0.20,b:0.20}, hex:"#f25353", lat: -23.554938761550353, lon: -46.72928502121782 },
       { key: "yellow", name: "Amarela",  color: {r:0.95,g:0.85,b:0.20}, hex:"#f2d453", lat: -23.55530066064501, lon: -46.729498983526106 },
@@ -223,15 +223,6 @@
       const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
       const scene = new BABYLON.Scene(engine);
 
-      const faceColors = [];
-      faceColors[0] = new BABYLON.Color4(0, 0, 1, 1); // Red (Back)
-      faceColors[1] = new BABYLON.Color4(0, 1, 0, 1); // Green (Front)
-      faceColors[2] = new BABYLON.Color4(1, 0, 0, 1); // Blue (Top)
-      faceColors[3] = new BABYLON.Color4(1, 0, 0, 1); // Yellow (Bottom)
-      faceColors[4] = new BABYLON.Color4(1, 0, 0, 1); // Magenta (Right)
-      faceColors[5] = new BABYLON.Color4(1, 0, 0, 1); // Cyan (Left)
-
-
       // Céu azul simples
       scene.clearColor = new BABYLON.Color4(0.65, 0.78, 0.95, 1.0);
 
@@ -268,17 +259,16 @@
       you.material = youMat;
 
       // Criar esferas a partir do array
-      //const sphereHeight = 0.7;
-      //const sphereDiameter = 0.7;
+      const sphereHeight = 0.7;
+      const sphereDiameter = 0.7;
 
       bjs.sphereMeshes = SPHERES_DEF.map(def => {
-        const mesh = BABYLON.MeshBuilder.CreateBox(def.key, { size:0.7, faceColors: faceColors }, scene);
+        const mesh = BABYLON.MeshBuilder.CreateSphere(def.key, { diameter: sphereDiameter, segments: 12 }, scene);
         const mat  = new BABYLON.StandardMaterial(def.key + "Mat", scene);
-        //mat.diffuseColor  = new BABYLON.Color3(def.color.r, def.color.g, def.color.b);
-        //mat.emissiveColor = new BABYLON.Color3(def.color.r, def.color.g, def.color.b).scale(0.25);
+        mat.diffuseColor  = new BABYLON.Color3(def.color.r, def.color.g, def.color.b);
+        mat.emissiveColor = new BABYLON.Color3(def.color.r, def.color.g, def.color.b).scale(0.25);
         mesh.material = mat;
-        mesh.position = new BABYLON.Vector3(0, 0.7, 0); // atualizado no onGeoUpdate()
-        mesh.lookAt(you.position)
+        mesh.position = new BABYLON.Vector3(0, sphereHeight, 0); // atualizado no onGeoUpdate()
         return { def, mesh };
       });
 
@@ -340,7 +330,6 @@
           // Conversão: x=leste -> X; y=norte -> Z
           mesh.position.x = rel.x;
           mesh.position.z = rel.y;
-          mesh.lookAt(you.position);
 
           const dist = Math.hypot(rel.x, rel.y);
           distances.push({ name: def.name, key: def.key, dist });
