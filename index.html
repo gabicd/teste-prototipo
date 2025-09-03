@@ -75,7 +75,6 @@
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
 
   <script>
-    //import "hammerjs";
     /**********************
      * Helpers geoespaciais
      **********************/
@@ -227,16 +226,13 @@
       scene.clearColor = new BABYLON.Color4(0.65, 0.78, 0.95, 1.0);
 
       // Câmera 1ª pessoa estática (olhar livre)
-      // usar ArcRotateCamera, precisa de refinamento
-      const camera = new BABYLON.ArcRotateCamera("cam",0, 0.05, 0, new BABYLON.Vector3(0, 1.7, 0), scene);
+      const camera = new BABYLON.ArcRotateCamera("cam", new BABYLON.Vector3(0, 1.7, 0), scene);
       camera.minZ = 0.05;
       camera.speed = 0; // sem deslocamento
       camera.attachControl(canvas, true);
-
       camera.inertia = 0.75
       camera.inputs.attached.pointers.useNaturalPinchZoom = true;
 
-      //adicionar radius limits para o zoom
 
       // Ativa touch-look personalizado (arrasta para girar)
       //setupTouchLook(camera, canvas);
@@ -288,7 +284,7 @@
     }
 
     // Controle de olhar por arraste (robusto em mobile)
-   /* function setupTouchLook(camera, canvas) {
+    /*function setupTouchLook(camera, canvas) {
       let dragging = false, lastX = 0, lastY = 0;
       const yawSens = 0.0032;   // sensibilidade horizontal
       const pitchSens = 0.0030; // sensibilidade vertical
