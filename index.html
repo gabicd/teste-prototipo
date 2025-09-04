@@ -236,6 +236,8 @@
       camera.minZ = 0.05;
       //camera.speed = 0; // sem deslocamento
       camera.attachControl(canvas, true);
+      camera.inertia = 0.75
+      camera.useNaturalPinchZoom = true;
 
       // Ativa touch-look personalizado (arrasta para girar)
       //setupTouchLook(camera, canvas);
