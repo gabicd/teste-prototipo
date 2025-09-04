@@ -94,7 +94,7 @@
      * Esferas fixas (geolocalizações fornecidas)
      **********************/
     const SPHERES_DEF = [
-      { key: "green",  name: "Verde",    color: {r:0.20,g:0.85,b:0.35}, hex:"#34d27a", lat: -23.554700869294937, lon: -46.72974469508013 },
+      { key: "green",  name: "Verde",    color: {r:0.20,g:0.85,b:0.35}, hex:"#34d27a", lat: -23.576912, lon: -46.640388 },
       { key: "blue",   name: "Azul",     color: {r:0.20,g:0.55,b:0.95}, hex:"#3a8ef7", lat: -23.555080484391453, lon: -46.729948994574485 },
       { key: "red",    name: "Vermelha", color: {r:0.95,g:0.20,b:0.20}, hex:"#f25353", lat: -23.554938761550353, lon: -46.72928502121782 },
       { key: "yellow", name: "Amarela",  color: {r:0.95,g:0.85,b:0.20}, hex:"#f2d453", lat: -23.55530066064501, lon: -46.729498983526106 },
@@ -230,7 +230,7 @@
                 "arcCam",
                 -Math.PI / 2, // Inicia olhando de frente para o alvo
                 Math.PI / 2.5, // Um pouco inclinado para baixo
-                5, // Distância inicial do alvo
+                0, // Distância inicial do alvo
                 targetPosition,
                 scene);
       camera.minZ = 0.05;
