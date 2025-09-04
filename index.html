@@ -94,7 +94,7 @@
      * Esferas fixas (geolocalizações fornecidas)
      **********************/
     const SPHERES_DEF = [
-      { key: "green",  name: "Verde",    color: {r:0.20,g:0.85,b:0.35}, hex:"#34d27a", lat: -23.576911, lon: -46.640387 },
+      { key: "green",  name: "Verde",    color: {r:0.20,g:0.85,b:0.35}, hex:"#34d27a", lat: -23.554700869294937, lon: -46.72974469508013 },
       { key: "blue",   name: "Azul",     color: {r:0.20,g:0.55,b:0.95}, hex:"#3a8ef7", lat: -23.555080484391453, lon: -46.729948994574485 },
       { key: "red",    name: "Vermelha", color: {r:0.95,g:0.20,b:0.20}, hex:"#f25353", lat: -23.554938761550353, lon: -46.72928502121782 },
       { key: "yellow", name: "Amarela",  color: {r:0.95,g:0.85,b:0.20}, hex:"#f2d453", lat: -23.55530066064501, lon: -46.729498983526106 },
@@ -226,16 +226,13 @@
       scene.clearColor = new BABYLON.Color4(0.65, 0.78, 0.95, 1.0);
 
       // Câmera 1ª pessoa estática (olhar livre)
-      const camera = new BABYLON.ArcRotateCamera("cam", new BABYLON.Vector3(0, 1.7, 0), scene);
+      const camera = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, 1.7, 0), scene);
       camera.minZ = 0.05;
       camera.speed = 0; // sem deslocamento
       camera.attachControl(canvas, true);
-      camera.inertia = 0.75
-      camera.inputs.attached.pointers.useNaturalPinchZoom = true;
-
 
       // Ativa touch-look personalizado (arrasta para girar)
-      //setupTouchLook(camera, canvas);
+      setupTouchLook(camera, canvas);
 
       // Luz ambiente
       new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0.2, 1, -0.2), scene);
@@ -284,7 +281,7 @@
     }
 
     // Controle de olhar por arraste (robusto em mobile)
-    /*function setupTouchLook(camera, canvas) {
+    function setupTouchLook(camera, canvas) {
       let dragging = false, lastX = 0, lastY = 0;
       const yawSens = 0.0032;   // sensibilidade horizontal
       const pitchSens = 0.0030; // sensibilidade vertical
@@ -313,7 +310,7 @@
       canvas.addEventListener('pointermove', onMove, { passive: true });
       canvas.addEventListener('pointerup', onUp, { passive: true });
       canvas.addEventListener('pointercancel', onUp, { passive: true });
-    }*/
+    }
 
     // Atualiza esferas e UI quando a geolocalização muda (mapa OU cena 3D)
     function onGeoUpdate() {
