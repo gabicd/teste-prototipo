@@ -224,14 +224,14 @@
 
       // Céu azul simples
       scene.clearColor = new BABYLON.Color4(0.65, 0.78, 0.95, 1.0);
-//const targetPosition = new BABYLON.Vector3(0, 1.7, 0);
+      const targetPosition = new BABYLON.Vector3(0, 0.05, 0);
       // Câmera 1ª pessoa estática (olhar livre)
       const camera = new BABYLON.ArcRotateCamera(
                 "arcCam",
                 -Math.PI / 2, // Inicia olhando de frente para o alvo
                 Math.PI / 2.5, // Um pouco inclinado para baixo
                 5, // Distância inicial do alvo
-                you.position,
+                targetPosition,
                 scene);
       camera.minZ = 0.05;
       //camera.speed = 0; // sem deslocamento
