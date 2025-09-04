@@ -226,18 +226,11 @@
       scene.clearColor = new BABYLON.Color4(0.65, 0.78, 0.95, 1.0);
       const targetPosition = new BABYLON.Vector3(0, 0.05, 0);
       // Câmera 1ª pessoa estática (olhar livre)
-      const camera = new BABYLON.ArcRotateCamera(
-                "arcCam",
-                -Math.PI / 2, // Inicia olhando de frente para o alvo
-                Math.PI / 2.5, // Um pouco inclinado para baixo
-                0, // Distância inicial do alvo
-                targetPosition,
-                scene);
-      camera.minZ = 0.05;
+      const camera = new BABYLON.ArcRotateCamera("cam",0, 0.05, 0, new BABYLON.Vector3(0, 1.7, 0), scene);5;
       //camera.speed = 0; // sem deslocamento
       camera.attachControl(canvas, true);
       camera.inertia = 0.75
-      camera.useNaturalPinchZoom = true;
+      camera.inputs.attached.pointers.useNaturalPinchZoom = true;
 
       // Ativa touch-look personalizado (arrasta para girar)
       //setupTouchLook(camera, canvas);
