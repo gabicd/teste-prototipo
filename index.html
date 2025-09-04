@@ -226,7 +226,7 @@
       scene.clearColor = new BABYLON.Color4(0.65, 0.78, 0.95, 1.0);
 
       // Câmera 1ª pessoa estática (olhar livre)
-      const camera = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, 1.7, 0), scene);
+      const camera = new BABYLON.ArcRotateCamera("cam", new BABYLON.Vector3(0, 1.7, 0), scene);
       camera.minZ = 0.05;
       camera.speed = 0; // sem deslocamento
       camera.attachControl(canvas, true);
